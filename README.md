@@ -1,7 +1,7 @@
 # ClassMate AI — backend ready, frontend กากๆ
 
 ## Setup (5 นาที)
-1. `cp .env.example .env.local` ใส่ค่า Supabase + `GEMINI_API_KEY` (server เท่านั้น ห้าม NEXT_PUBLIC)
+1. `cp .env.example .env.local` ใส่ค่า Supabase + `THAILLM_API_KEY` (+ `GEMINI_API_KEY` สำหรับ embeddings) — server เท่านั้น ห้าม NEXT_PUBLIC ห้าม commit `.env.local`
 2. Supabase SQL editor → รัน `supabase/schema.sql`
 3. `npm install && npm run dev`
 
@@ -16,11 +16,13 @@
 - `DELETE /api/history?id=` → ลบบทสนทนา
 
 ## Security
-- Key อยู่ server env เท่านั้น (`GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
+- Key อยู่ server env เท่านั้น (`THAILLM_API_KEY`, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
+- ตอบคำถามด้วย ThaiLLM (OpenAI-compatible, default `Typhoon-S-ThaiLLM-8B-Instruct` 128K) ผ่าน `lib/thaillm.ts` ฝั่ง server เท่านั้น
+- Embeddings ยังใช้ Gemini `text-embedding-004` (768-dim ตรง schema) จนกว่า ThaiLLM จะมี embeddings endpoint
 - Client ใช้ anon key ผ่าน cookie session, Context เก็บแค่ชื่อ/email
 - RLS per `user_id`, vector search กรอง `match_user` เสมอ
 
 ## ให้เพื่อน frontend
 - หน้ากากๆ อยู่ที่ `app/login|upload|chat|quiz` เขียนทับได้เลย
 - ใช้ `useAuth()` จาก `components/AuthProvider.tsx` โชว์ชื่อ
-- ห้ามเรียก Gemini ตรง ให้ยิง `/api/*` เท่านั้น
+- ห้ามเรียก ThaiLLM/Gemini ตรง ให้ยิง `/api/*` เท่านั้น

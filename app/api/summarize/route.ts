@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { generateAnswer } from "@/lib/gemini";
+import { generateAnswer } from "@/lib/thaillm";
 import { SUMMARIZE_SYSTEM_PROMPT } from "@/lib/prompts";
 
 // POST /api/summarize { doc_id, pages?: number[], mode: "short"|"long" }

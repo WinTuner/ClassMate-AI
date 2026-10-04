@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { embedText, generateAnswer } from "@/lib/gemini";
+import { embedText } from "@/lib/gemini";
+import { generateAnswer } from "@/lib/thaillm";
 import { CHAT_SYSTEM_PROMPT, NOT_FOUND_TH } from "@/lib/prompts";
 
 const THRESHOLD = Number(process.env.SIMILARITY_THRESHOLD ?? 0.35);

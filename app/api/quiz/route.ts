@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabase-server";
-import { embedText, generateAnswer } from "@/lib/gemini";
+import { embedText } from "@/lib/gemini";
+import { generateAnswer } from "@/lib/thaillm";
 import { QUIZ_SYSTEM_PROMPT } from "@/lib/prompts";
 
 // POST /api/quiz { topic, type, n } — generate + save to quizzes
