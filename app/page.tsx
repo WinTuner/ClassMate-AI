@@ -1,7 +1,7 @@
 export default function Home() {
   return (
     <main style={{ padding: 24 }}>
-      <h1>ClassMate AI (backend ready, frontend กากๆ)</h1>
+      <h1>ClassMate AI</h1>
       <ul>
         <li><a href="/login">/login</a></li>
         <li><a href="/upload">/upload</a></li>

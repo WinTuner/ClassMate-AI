@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-// หน้ากากๆ — อัปโหลด PDF ไป POST /api/ingest
+// อัปโหลด PDF ไป POST /api/ingest
 export default function UploadPage() {
   const [msg, setMsg] = useState("");
   const send = async (f: File) => {
@@ -12,7 +12,7 @@ export default function UploadPage() {
   };
   return (
     <main style={{ padding: 24 }}>
-      <h2>Upload PDF (กากๆ)</h2>
+      <h2>Upload PDF</h2>
       <input type="file" accept="application/pdf" onChange={(e) => e.target.files && send(e.target.files[0])} />
       <pre>{msg}</pre>
     </main>

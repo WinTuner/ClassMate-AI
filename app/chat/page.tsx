@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 
-// หน้ากากๆ — แชทไป POST /api/chat
+// แชทไป POST /api/chat
 export default function ChatPage() {
   const { name } = useAuth();
   const [q, setQ] = useState("");
@@ -17,7 +17,7 @@ export default function ChatPage() {
   };
   return (
     <main style={{ padding: 24 }}>
-      <h2>Chat {name ? `— ${name}` : ""} (กากๆ)</h2>
+      <h2>Chat {name ? `— ${name}` : ""}</h2>
       <input style={{ width: 400 }} value={q} onChange={(e) => setQ(e.target.value)} placeholder="ถามจากสไลด์..." />
       <button onClick={send}>ส่ง</button>
       <pre>{a}</pre>

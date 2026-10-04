@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 
-// หน้ากากๆ — POST /api/quiz
+// POST /api/quiz
 export default function QuizPage() {
   const [topic, setTopic] = useState("");
   const [out, setOut] = useState("");
@@ -15,7 +15,7 @@ export default function QuizPage() {
   };
   return (
     <main style={{ padding: 24 }}>
-      <h2>Quiz (กากๆ)</h2>
+      <h2>Quiz</h2>
       <input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="หัวข้อ..." />
       <button onClick={send}>สร้าง</button>
       <pre>{out}</pre>

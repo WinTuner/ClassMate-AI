@@ -1,4 +1,4 @@
-# ClassMate AI — backend ready, frontend base
+# ClassMate AI
 
 ## Setup (5 นาที)
 1. `cp .env.example .env.local` ใส่ค่า Supabase + `THAILLM_API_KEY` (+ `GEMINI_API_KEY` สำหรับ embeddings) — server เท่านั้น ห้าม NEXT_PUBLIC ห้าม commit `.env.local`
@@ -23,6 +23,6 @@
 - RLS per `user_id`, vector search กรอง `match_user` เสมอ
 
 ## ให้เพื่อน frontend
-- หน้า อยู่ที่ `app/login|upload|chat|quiz` เขียนทับได้เลย
+- หน้าอยู่ที่ `app/login|upload|chat|quiz` เขียนทับได้เลย
 - ใช้ `useAuth()` จาก `components/AuthProvider.tsx` โชว์ชื่อ
 - ห้ามเรียก ThaiLLM/Gemini ตรง ให้ยิง `/api/*` เท่านั้น
