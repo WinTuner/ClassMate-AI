@@ -7,6 +7,8 @@ export default function Home() {
         <li><a href="/upload">/upload</a></li>
         <li><a href="/chat">/chat</a></li>
         <li><a href="/quiz">/quiz</a></li>
+        <li><a href="/status">/status (Server Component + ข้อมูลจริง)</a></li>
+        <li><a href="/documents">/documents (Server Component + ข้อมูลจริง)</a></li>
       </ul>
       <p>เพื่อน frontend มาทำต่อได้เลย API ดูใน README</p>
     </main>
