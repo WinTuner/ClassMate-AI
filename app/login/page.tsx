@@ -10,6 +10,10 @@ export default function LoginPage() {
   const [pw, setPw] = useState("");
   const login = async () => {
     const sb = supabaseBrowser();
+    if (!sb) {
+      alert("ยังไม่ตั้งค่า Supabase env บน Vercel — login ไม่ได้");
+      return;
+    }
     const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
     if (error) alert(error.message);
     else location.href = "/chat";

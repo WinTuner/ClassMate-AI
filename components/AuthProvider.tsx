@@ -10,15 +10,26 @@ export const useAuth = () => useContext(Ctx);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [s, setS] = useState<AuthCtx>({ email: null, name: null, loading: true });
   useEffect(() => {
-    const sb = supabaseBrowser();
-    sb.auth.getUser().then(({ data }) => {
-      const u = data.user;
-      setS({
-        email: u?.email ?? null,
-        name: (u?.user_metadata?.display_name as string) ?? u?.email?.split("@")[0] ?? null,
-        loading: false,
-      });
-    });
+    try {
+      const sb = supabaseBrowser();
+      if (!sb) {
+        setS({ email: null, name: null, loading: false });
+        return;
+      }
+      sb.auth.getUser().then(
+        ({ data }) => {
+          const u = data.user;
+          setS({
+            email: u?.email ?? null,
+            name: (u?.user_metadata?.display_name as string) ?? u?.email?.split("@")[0] ?? null,
+            loading: false,
+          });
+        },
+        () => setS({ email: null, name: null, loading: false })
+      );
+    } catch {
+      setS({ email: null, name: null, loading: false });
+    }
   }, []);
   return <Ctx.Provider value={s}>{children}</Ctx.Provider>;
 }
