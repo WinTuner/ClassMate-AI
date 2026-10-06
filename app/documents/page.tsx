@@ -37,32 +37,37 @@ export default async function DocumentsPage() {
   const result = await getDocuments();
 
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>Documents (Server Component + ข้อมูลจริง)</h1>
-      <p>
-        <a href="/">/ </a> · <a href="/status">/status</a> · <a href="/chat">/chat</a> ·{" "}
-        <a href="/upload">/upload</a> · <a href="/quiz">/quiz</a>
-      </p>
+    <main className="page-container narrow">
+      <p className="eyebrow">คลังความรู้ของคุณ</p>
+      <h1 className="page-title">เอกสารที่อัปโหลด</h1>
+      <p className="page-description">รายการเอกสารล่าสุดที่พร้อมใช้ถามตอบและทบทวนบทเรียน</p>
       {"notLoggedIn" in result && result.notLoggedIn ? (
-        <p>
-          ยังไม่ login — ไปที่ <a href="/login">/login</a> ก่อน แล้วกลับมาหน้านี้
-          (server อ่าน session จาก cookie แล้ว query Supabase ตรง)
-        </p>
+        <section className="panel">
+          <p className="muted-text">เข้าสู่ระบบก่อนเพื่อดูเอกสารของคุณ</p>
+          <a className="button" href="/login">ไปหน้าเข้าสู่ระบบ</a>
+        </section>
       ) : result.error ? (
-        <p style={{ color: "red" }}>ดึงข้อมูลไม่ได้: {result.error}</p>
+        <p className="notice error" role="alert">ดึงข้อมูลไม่ได้: {result.error}</p>
       ) : (
-        <>
-          <p>เอกสารล่าสุด {result.rows?.length ?? 0} รายการ (ดึงฝั่ง server ทุก request)</p>
-          <ul>
+        <section className="panel">
+          <p className="muted-text">แสดงเอกสารล่าสุด {result.rows?.length ?? 0} รายการ</p>
+          {result.rows && result.rows.length > 0 ? (
+          <ul className="data-list">
             {result.rows?.map((d: any) => (
-              <li key={d.id}>
-                {d.filename} — {d.pages} หน้า — {d.status} —{" "}
-                {new Date(d.created_at).toLocaleString("th-TH")}
+              <li className="data-row" key={d.id}>
+                <strong>{d.filename}</strong>
+                <span>{d.pages} หน้า · {d.status} · {new Date(d.created_at).toLocaleDateString("th-TH")}</span>
               </li>
             ))}
           </ul>
-          {result.rows?.length === 0 && <p>ยังไม่มีเอกสาร อัปโหลดที่ /upload</p>}
-        </>
+          ) : (
+            <div className="answer-box">
+              <h2>ยังไม่มีเอกสาร</h2>
+              <p className="muted-text">เพิ่มไฟล์ PDF เพื่อเริ่มใช้ผู้ช่วยการเรียนของคุณ</p>
+              <a className="button" href="/upload">อัปโหลดเอกสาร</a>
+            </div>
+          )}
+        </section>
       )}
     </main>
   );

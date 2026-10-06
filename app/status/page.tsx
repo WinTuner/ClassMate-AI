@@ -43,22 +43,22 @@ async function getStatus() {
 export default async function StatusPage() {
   const s = await getStatus();
   return (
-    <main style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>Status (Server Component + ข้อมูลจริง)</h1>
-      <p>
-        <a href="/">/ </a> · <a href="/documents">/documents</a> · <a href="/chat">/chat</a> ·{" "}
-        <a href="/upload">/upload</a> · <a href="/quiz">/quiz</a>
-      </p>
-      <p>สถานะ: {s.ok ? "✅ OK" : "⚠️ ไม่พร้อม"}</p>
-      <p>{s.message}</p>
-      <p>ตรวจสอบเมื่อ (server time): {s.checkedAt}</p>
+    <main className="page-container narrow">
+      <p className="eyebrow">การเชื่อมต่อ</p>
+      <h1 className="page-title">สถานะระบบ</h1>
+      <p className="page-description">ตรวจสอบการเชื่อมต่อ Supabase และจำนวนข้อมูลในระบบ</p>
+      <section className="panel">
+        <h2>{s.ok ? "ระบบพร้อมใช้งาน" : "ระบบยังไม่พร้อม"}</h2>
+        <p className={`notice${s.ok ? "" : " error"}`} role={s.ok ? "status" : "alert"}>{s.message}</p>
+        <p className="muted-text">ตรวจสอบล่าสุด {new Date(s.checkedAt).toLocaleString("th-TH")}</p>
       {s.counts && (
-        <ul>
-          <li>documents: {s.counts.documents}</li>
-          <li>conversations: {s.counts.conversations}</li>
-          <li>quizzes: {s.counts.quizzes}</li>
-        </ul>
+        <div className="stat-grid">
+          <div className="stat-card"><span>เอกสาร</span><strong>{s.counts.documents}</strong></div>
+          <div className="stat-card"><span>บทสนทนา</span><strong>{s.counts.conversations}</strong></div>
+          <div className="stat-card"><span>แบบทดสอบ</span><strong>{s.counts.quizzes}</strong></div>
+        </div>
       )}
+      </section>
     </main>
   );
 }

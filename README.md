@@ -22,7 +22,20 @@
 - Client ใช้ anon key ผ่าน cookie session, Context เก็บแค่ชื่อ/email
 - RLS per `user_id`, vector search กรอง `match_user` เสมอ
 
-## ให้เพื่อน frontend
-- หน้าอยู่ที่ `app/login|upload|chat|quiz` เขียนทับได้เลย
-- ใช้ `useAuth()` จาก `components/AuthProvider.tsx` โชว์ชื่อ
-- ห้ามเรียก ThaiLLM/Gemini ตรง ให้ยิง `/api/*` เท่านั้น
+## Frontend
+- หน้าอยู่ที่ `app/` และใช้ layout/เมนูร่วมจาก `components/AppShell.tsx` กับสไตล์ `app/globals.css`
+- ใช้ `useAuth()` จาก `components/AuthProvider.tsx` เพื่อแสดงชื่อผู้ใช้
+- ห้ามเรียก ThaiLLM/Gemini จาก browser ให้เรียก `/api/*` เท่านั้น
+- หน้า `/documents` และ `/status` อ่านข้อมูลจาก Supabase ฝั่ง server
+
+## Frontend ที่ทำแล้ว
+- สร้างหน้าหลัก ClassMate AI พร้อมทางลัดไปยังอัปโหลดเอกสาร แชทถาม AI และสร้างแบบทดสอบ
+- เพิ่มแถบนำทางร่วมทุกหน้า แสดงชื่อผู้ใช้จาก `useAuth()` และรองรับหน้าจอมือถือ
+- จัดรูปแบบหน้า `/login`, `/upload`, `/chat`, `/quiz`, `/documents` และ `/status` ให้ใช้รูปแบบ UI เดียวกัน
+- หน้า `/login` เข้าสู่ระบบด้วย Supabase Auth พร้อมสถานะกำลังเข้าสู่ระบบและข้อความแจ้งข้อผิดพลาด
+- หน้า `/upload` เลือกและส่งไฟล์ PDF ไปยัง `POST /api/ingest` พร้อมแสดงสถานะสำเร็จ/ผิดพลาด
+- หน้า `/chat` ส่งคำถามไปยัง `POST /api/chat` ต่อบทสนทนาด้วย `conversation_id` และแสดงคำตอบกับ citations
+- หน้า `/quiz` สร้างแบบทดสอบปรนัย 5 ข้อผ่าน `POST /api/quiz` และแสดงผลลัพธ์จาก API
+- หน้า `/documents` แสดงรายการเอกสารจาก Supabase ฝั่ง server พร้อมสถานะกรณียังไม่เข้าสู่ระบบหรือไม่มีเอกสาร
+- หน้า `/status` แสดงสถานะ Supabase และจำนวนเอกสาร บทสนทนา และแบบทดสอบ
+- เพิ่มสไตล์ส่วนกลางใน `app/globals.css` โดยคำนึงถึงการใช้งานบนมือถือและการลด motion ตามการตั้งค่าของผู้ใช้

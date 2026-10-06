@@ -1,30 +1,92 @@
 "use client";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-client";
 import { useAuth } from "@/components/AuthProvider";
 
-// login แล้วโชว์ชื่อผ่าน Context
 export default function LoginPage() {
   const { email, name } = useAuth();
   const [em, setEm] = useState("");
   const [pw, setPw] = useState("");
-  const login = async () => {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
+
+  const login = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setBusy(true);
+    setMessage("");
+    setIsError(false);
     const sb = supabaseBrowser();
     if (!sb) {
-      alert("ยังไม่ตั้งค่า Supabase env บน Vercel — login ไม่ได้");
+      setMessage("ยังไม่ได้ตั้งค่า Supabase กรุณาตรวจสอบ environment variables ตาม README");
+      setIsError(true);
+      setBusy(false);
       return;
     }
-    const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
-    if (error) alert(error.message);
-    else location.href = "/chat";
+
+    try {
+      const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
+      if (error) {
+        setMessage(error.message);
+        setIsError(true);
+        return;
+      }
+      window.location.href = "/chat";
+    } catch {
+      setMessage("เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง");
+      setIsError(true);
+    } finally {
+      setBusy(false);
+    }
   };
+
   return (
-    <main style={{ padding: 24 }}>
-      <h2>Login</h2>
-      {email && <p>ล็อกอินแล้ว: {name} ({email})</p>}
-      <input placeholder="email" value={em} onChange={(e) => setEm(e.target.value)} /><br />
-      <input placeholder="password" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /><br />
-      <button onClick={login}>Login</button>
+    <main className="page-container narrow">
+      <section className="auth-card panel">
+        <div className="auth-intro">
+          <span className="brand-mark">CM</span>
+          <p className="eyebrow">ยินดีต้อนรับกลับ</p>
+          <h1 className="page-title">เข้าสู่ระบบ</h1>
+          <p className="page-description">เข้าใช้งานพื้นที่เรียนรู้ของคุณต่อได้เลย</p>
+        </div>
+        {email ? (
+          <div className="notice">
+            เข้าสู่ระบบแล้วในชื่อ {name || email} ({email})
+          </div>
+        ) : (
+          <form className="form-stack" onSubmit={login}>
+            <label className="field-label">
+              อีเมล
+              <input
+                className="text-input"
+                type="email"
+                autoComplete="email"
+                placeholder="you@example.com"
+                required
+                value={em}
+                onChange={(event) => setEm(event.target.value)}
+              />
+            </label>
+            <label className="field-label">
+              รหัสผ่าน
+              <input
+                className="text-input"
+                type="password"
+                autoComplete="current-password"
+                placeholder="กรอกรหัสผ่าน"
+                required
+                value={pw}
+                onChange={(event) => setPw(event.target.value)}
+              />
+            </label>
+            <button className="button" type="submit" disabled={busy}>
+              {busy ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+            </button>
+            <p className="form-help">ใช้บัญชีที่ตั้งค่าไว้ใน Supabase Auth</p>
+          </form>
+        )}
+        {message && <p className={`notice${isError ? " error" : ""}`} role="alert">{message}</p>}
+      </section>
     </main>
   );
 }
