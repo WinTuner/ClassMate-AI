@@ -41,10 +41,11 @@ export default function LoginPage() {
     }
   };
 
-  const logout = async () => {
+  const logout = async (global: boolean) => {
     const sb = supabaseBrowser();
     if (!sb) return;
-    await sb.auth.signOut();
+    // global = ล้างทุก session ของ user นี้ (ทุก browser/เครื่อง), local = แค่เครื่องนี้
+    await sb.auth.signOut(global ? { scope: "global" } : undefined);
     window.location.href = "/login";
   };
 
@@ -62,8 +63,11 @@ export default function LoginPage() {
             <div className="notice">
               เข้าสู่ระบบแล้วในชื่อ {name || email} ({email})
             </div>
-            <button className="button-secondary button" type="button" onClick={logout}>
+            <button className="button-secondary button" type="button" onClick={() => logout(false)}>
               ออกจากระบบ
+            </button>
+            <button className="button" type="button" onClick={() => logout(true)}>
+              ออกจากระบบทุกเครื่อง
             </button>
           </div>
         ) : (
