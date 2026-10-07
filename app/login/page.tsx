@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 import { supabaseBrowser } from "@/lib/supabase-client";
 import { useAuth } from "@/components/AuthProvider";
 
@@ -40,6 +41,13 @@ export default function LoginPage() {
     }
   };
 
+  const logout = async () => {
+    const sb = supabaseBrowser();
+    if (!sb) return;
+    await sb.auth.signOut();
+    window.location.href = "/login";
+  };
+
   return (
     <main className="page-container narrow">
       <section className="auth-card panel">
@@ -50,8 +58,13 @@ export default function LoginPage() {
           <p className="page-description">เข้าใช้งานพื้นที่เรียนรู้ของคุณต่อได้เลย</p>
         </div>
         {email ? (
-          <div className="notice">
-            เข้าสู่ระบบแล้วในชื่อ {name || email} ({email})
+          <div className="form-stack">
+            <div className="notice">
+              เข้าสู่ระบบแล้วในชื่อ {name || email} ({email})
+            </div>
+            <button className="button-secondary button" type="button" onClick={logout}>
+              ออกจากระบบ
+            </button>
           </div>
         ) : (
           <form className="form-stack" onSubmit={login}>
@@ -82,7 +95,10 @@ export default function LoginPage() {
             <button className="button" type="submit" disabled={busy}>
               {busy ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
             </button>
-            <p className="form-help">ใช้บัญชีที่ตั้งค่าไว้ใน Supabase Auth</p>
+            <p className="form-help">
+              ใช้บัญชีที่ตั้งค่าไว้ใน Supabase Auth · ยังไม่มีบัญชี?{" "}
+              <Link href="/signup">สมัครสมาชิก</Link>
+            </p>
           </form>
         )}
         {message && <p className={`notice${isError ? " error" : ""}`} role="alert">{message}</p>}
