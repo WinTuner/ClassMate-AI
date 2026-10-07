@@ -7,8 +7,8 @@
   --paper: #09090b;
   --surface: #131316;
   --line: #292529;
-  --green: #ff303b;
-  --green-dark: #d71927;
+  --brand: #ff303b;
+  --brand-dark: #d71927;
   --mint: #2a1116;
   --orange: #ff6570;
   --danger: #ff747c;
@@ -133,7 +133,7 @@ a {
 
 .eyebrow {
   margin: 0 0 11px;
-  color: var(--green);
+  color: var(--brand);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 1.7px;
@@ -214,7 +214,7 @@ a {
   border: 1px solid rgba(255, 48, 59, 0.25);
   border-radius: 12px;
   background: var(--mint);
-  color: var(--green);
+  color: var(--brand);
   font-size: 13px;
   font-weight: 700;
 }
@@ -234,7 +234,7 @@ a {
 .feature-arrow {
   margin-top: auto;
   padding-top: 17px;
-  color: var(--green);
+  color: var(--brand);
   font-size: 13px;
   font-weight: 700;
 }
@@ -594,4 +594,88 @@ a {
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.quiz-score {
+  margin: 22px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.quiz-list {
+  display: grid;
+  gap: 16px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.quiz-item {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #17171a;
+  padding: 18px;
+}
+
+.quiz-question {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.quiz-choices {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.quiz-choice {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #1e1d21;
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.7;
+  padding: 10px 13px;
+  text-align: left;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.quiz-choice:hover {
+  border-color: rgba(255, 48, 59, 0.5);
+}
+
+.quiz-choice.picked {
+  border-color: var(--brand);
+  background: rgba(255, 48, 59, 0.12);
+}
+
+.quiz-choice.correct {
+  border-color: #3ddc84;
+  background: rgba(61, 220, 132, 0.12);
+}
+
+.quiz-choice.wrong {
+  border-color: var(--danger);
+  background: rgba(255, 116, 124, 0.1);
+}
+
+.button-small {
+  min-height: 38px;
+  font-size: 13px;
+  padding: 0 14px;
+}
+
+.quiz-answer {
+  margin-top: 12px;
+  border-top: 1px dashed var(--line);
+  padding-top: 12px;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.quiz-answer p {
+  margin: 6px 0;
 }

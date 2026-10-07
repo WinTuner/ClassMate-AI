@@ -1,9 +1,48 @@
 "use client";
 import { useState } from "react";
 
+type QuizItem = {
+  type?: string;
+  question?: string;
+  choices?: unknown[];
+  answer?: unknown;
+  explanation?: string;
+  citation?: unknown;
+  raw?: string;
+  [key: string]: unknown;
+};
+
+const toText = (value: unknown): string =>
+  typeof value === "string" ? value : JSON.stringify(value);
+
+const normalize = (value: unknown): string => toText(value).trim().toLowerCase();
+
+// Map the model's `answer` to a choice index when possible:
+// supports letter answers ("A", "ก", "1") or full-text answers.
+const answerIndex = (item: QuizItem): number | null => {
+  const choices = Array.isArray(item.choices) ? item.choices : [];
+  if (choices.length === 0 || item.answer === undefined) return null;
+  const ans = normalize(item.answer);
+  const letters = ["a", "b", "c", "d", "e", "f"];
+  const thaiLetters = ["ก", "ข", "ค", "ง", "จ", "ฉ"];
+  const letterHit = [...letters, ...thaiLetters].indexOf(ans) % 6;
+  const clean = ans.replace(/^[a-fก-ฉ][).:]\s*/, "");
+  for (let i = 0; i < choices.length; i++) {
+    const text = normalize(choices[i]).replace(/^[a-fก-ฉ][).:]\s*/, "");
+    if (text === ans || text === clean) return i;
+  }
+  if (letterHit >= 0 && letterHit < choices.length && /^[a-fก-ฉ]$/.test(ans)) return letterHit;
+  const asNum = Number(ans);
+  if (Number.isInteger(asNum) && asNum >= 1 && asNum <= choices.length) return asNum - 1;
+  return null;
+};
+
 export default function QuizPage() {
   const [topic, setTopic] = useState("");
-  const [out, setOut] = useState("");
+  const [items, setItems] = useState<QuizItem[] | null>(null);
+  const [rawFallback, setRawFallback] = useState("");
+  const [picked, setPicked] = useState<(number | null)[]>([]);
+  const [revealed, setRevealed] = useState<boolean[]>([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -12,7 +51,10 @@ export default function QuizPage() {
     if (!topic.trim()) return;
     setBusy(true);
     setError("");
-    setOut("");
+    setItems(null);
+    setRawFallback("");
+    setPicked([]);
+    setRevealed([]);
     try {
       const response = await fetch("/api/quiz", {
         method: "POST",
@@ -28,13 +70,31 @@ export default function QuizPage() {
         setError(detail);
         return;
       }
-      setOut(JSON.stringify(data, null, 2));
+      const quiz =
+        typeof data === "object" && data !== null && "quiz" in data
+          ? (data as { quiz: unknown }).quiz
+          : null;
+      if (Array.isArray(quiz) && quiz.every((q) => typeof q === "object" && q !== null)) {
+        const list = quiz as QuizItem[];
+        setItems(list);
+        setPicked(list.map(() => null));
+        setRevealed(list.map(() => false));
+      } else {
+        setRawFallback(JSON.stringify(data, null, 2));
+      }
     } catch {
       setError("เชื่อมต่อระบบสร้างแบบทดสอบไม่ได้ กรุณาลองอีกครั้ง");
     } finally {
       setBusy(false);
     }
   };
+
+  const correctCount =
+    items?.filter((item, i) => {
+      const ai = answerIndex(item);
+      return ai !== null && picked[i] === ai;
+    }).length ?? 0;
+  const answeredCount = picked.filter((p) => p !== null).length;
 
   return (
     <main className="page-container narrow">
@@ -59,10 +119,101 @@ export default function QuizPage() {
           </button>
         </form>
         {error && <p className="notice error" role="alert">{error}</p>}
-        {out && (
+        {items && items.length > 0 && (
+          <div aria-live="polite">
+            <p className="quiz-score">
+              ตอบแล้ว {answeredCount}/{items.length} ข้อ · ถูก {correctCount} ข้อ
+            </p>
+            <ol className="quiz-list">
+              {items.map((item, i) => {
+                const choices = Array.isArray(item.choices) ? item.choices : [];
+                const ai = answerIndex(item);
+                const showAnswer = revealed[i];
+                if (!item.question) {
+                  return (
+                    <li className="quiz-item" key={i}>
+                      <pre className="answer-text" style={{ overflowX: "auto" }}>
+                        {item.raw ? toText(item.raw) : JSON.stringify(item, null, 2)}
+                      </pre>
+                    </li>
+                  );
+                }
+                return (
+                  <li className="quiz-item" key={i}>
+                    <p className="quiz-question">
+                      <strong>ข้อ {i + 1}</strong> {item.question}
+                    </p>
+                    {choices.length > 0 ? (
+                      <div className="quiz-choices" role="group" aria-label={`ตัวเลือกข้อ ${i + 1}`}>
+                        {choices.map((choice, ci) => {
+                          const isAnswer = ai === ci;
+                          const isPicked = picked[i] === ci;
+                          const cls = [
+                            "quiz-choice",
+                            isPicked ? "picked" : "",
+                            showAnswer && isAnswer ? "correct" : "",
+                            showAnswer && isPicked && !isAnswer ? "wrong" : "",
+                          ]
+                            .filter(Boolean)
+                            .join(" ");
+                          return (
+                            <button
+                              className={cls}
+                              key={ci}
+                              type="button"
+                              onClick={() =>
+                                setPicked((prev) => prev.map((p, pi) => (pi === i ? ci : p)))
+                              }
+                            >
+                              {toText(choice)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="muted-text">({item.type ?? "อัตนัย"}) ลองตอบในใจแล้วกดดูเฉลย</p>
+                    )}
+                    <button
+                      className="button-secondary button-small"
+                      type="button"
+                      onClick={() =>
+                        setRevealed((prev) => prev.map((r, ri) => (ri === i ? !r : r)))
+                      }
+                    >
+                      {showAnswer ? "ซ่อนเฉลย" : "ดูเฉลย"}
+                    </button>
+                    {showAnswer && (
+                      <div className="quiz-answer">
+                        <p>
+                          <strong>เฉลย:</strong>{" "}
+                          {ai !== null && choices[ai] !== undefined
+                            ? toText(choices[ai])
+                            : toText(item.answer)}
+                        </p>
+                        {item.explanation && (
+                          <p>
+                            <strong>เหตุผล:</strong> {item.explanation}
+                          </p>
+                        )}
+                        {item.citation !== undefined && (
+                          <p className="muted-text">
+                            <strong>อ้างอิง:</strong> {toText(item.citation)}
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        )}
+        {rawFallback && (
           <div className="answer-box" aria-live="polite">
             <h2>แบบทดสอบของคุณ</h2>
-            <pre className="answer-text" style={{ overflowX: "auto", fontFamily: "inherit" }}>{out}</pre>
+            <pre className="answer-text" style={{ overflowX: "auto", fontFamily: "inherit" }}>
+              {rawFallback}
+            </pre>
           </div>
         )}
       </section>

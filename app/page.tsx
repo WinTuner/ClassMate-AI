@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="page-container">
@@ -8,7 +10,7 @@ export default function Home() {
           รวมเอกสารการเรียนไว้ที่เดียว ถาม AI จากเนื้อหาจริง
           และทบทวนความเข้าใจด้วยแบบทดสอบส่วนตัว
         </p>
-        <a className="button button-light" href="/upload">เริ่มจากอัปโหลดเอกสาร</a>
+        <Link className="button button-light" href="/upload">เริ่มจากอัปโหลดเอกสาร</Link>
       </section>
 
       <section aria-labelledby="study-tools-title">
@@ -19,31 +21,31 @@ export default function Home() {
           </div>
         </div>
         <div className="card-grid">
-          <a className="feature-card" href="/upload">
+          <Link className="feature-card" href="/upload">
             <span className="feature-icon">PDF</span>
             <h3>เพิ่มเอกสารเรียน</h3>
             <p>อัปโหลด PDF เพื่อให้ ClassMate AI ใช้เป็นแหล่งข้อมูลอ้างอิง</p>
             <span className="feature-arrow">อัปโหลดเอกสาร →</span>
-          </a>
-          <a className="feature-card" href="/chat">
+          </Link>
+          <Link className="feature-card" href="/chat">
             <span className="feature-icon">AI</span>
             <h3>ถามจากเอกสาร</h3>
             <p>ถามคำถามและรับคำตอบพร้อมแหล่งอ้างอิงจากเอกสารของคุณ</p>
             <span className="feature-arrow">เริ่มสนทนา →</span>
-          </a>
-          <a className="feature-card" href="/quiz">
+          </Link>
+          <Link className="feature-card" href="/quiz">
             <span className="feature-icon">QZ</span>
             <h3>ฝึกทำแบบทดสอบ</h3>
             <p>สร้างแบบทดสอบเพื่อทบทวนหัวข้อที่กำลังเรียน</p>
             <span className="feature-arrow">สร้างแบบทดสอบ →</span>
-          </a>
+          </Link>
         </div>
       </section>
 
       <footer className="footer-note">
-        <a href="/status">สถานะระบบ</a>
+        <Link href="/status">สถานะระบบ</Link>
         <span> · </span>
-        <a href="/documents">ดูเอกสารทั้งหมด</a>
+        <Link href="/documents">ดูเอกสารทั้งหมด</Link>
       </footer>
     </main>
   );

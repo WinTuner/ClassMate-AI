@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -44,7 +45,7 @@ export default async function DocumentsPage() {
       {"notLoggedIn" in result && result.notLoggedIn ? (
         <section className="panel">
           <p className="muted-text">เข้าสู่ระบบก่อนเพื่อดูเอกสารของคุณ</p>
-          <a className="button" href="/login">ไปหน้าเข้าสู่ระบบ</a>
+          <Link className="button" href="/login">ไปหน้าเข้าสู่ระบบ</Link>
         </section>
       ) : result.error ? (
         <p className="notice error" role="alert">ดึงข้อมูลไม่ได้: {result.error}</p>
@@ -64,7 +65,7 @@ export default async function DocumentsPage() {
             <div className="answer-box">
               <h2>ยังไม่มีเอกสาร</h2>
               <p className="muted-text">เพิ่มไฟล์ PDF เพื่อเริ่มใช้ผู้ช่วยการเรียนของคุณ</p>
-              <a className="button" href="/upload">อัปโหลดเอกสาร</a>
+              <Link className="button" href="/upload">อัปโหลดเอกสาร</Link>
             </div>
           )}
         </section>
