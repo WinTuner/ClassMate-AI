@@ -20,7 +20,7 @@
 ## Security
 - Key อยู่ server env เท่านั้น (`THAILLM_API_KEY`, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
 - ตอบคำถามด้วย ThaiLLM (OpenAI-compatible, default `Typhoon-S-ThaiLLM-8B-Instruct` 128K) ผ่าน `lib/thaillm.ts` ฝั่ง server เท่านั้น
-- Embeddings ยังใช้ Gemini `text-embedding-004` (768-dim ตรง schema) จนกว่า ThaiLLM จะมี embeddings endpoint
+- Embeddings ใช้ Gemini `gemini-embedding-001` ขอ output 768-dim (Matryoshka ตรง schema) จนกว่า ThaiLLM จะมี embeddings endpoint
 - Client ใช้ anon key ผ่าน cookie session, Context เก็บแค่ชื่อ/email
 - RLS per `user_id`, vector search กรอง `match_user` เสมอ
 

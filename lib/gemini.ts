@@ -1,17 +1,19 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
-// Embeddings only (768-dim, matches supabase vector(768)).
-// Answer generation moved to ThaiLLM (lib/thaillm.ts).
-// All Gemini calls run server-side only. Key never leaves server.
-export function gemini() {
+// Embeddings only — gemini-embedding-001 ขอ output 768-dim ผ่าน Matryoshka
+// (ตรง schema supabase vector(768) เดิม ไม่ต้องแก้ SQL)
+// Answer generation อยู่ ThaiLLM (lib/thaillm.ts)
+// ทุก call รัน server-side เท่านั้น Key ไม่หลุดไป browser
+export async function embedText(text: string): Promise<number[]> {
   const key = process.env.GEMINI_API_KEY!;
   if (!key) throw new Error("Missing GEMINI_API_KEY (server env)");
-  return new GoogleGenerativeAI(key);
-}
-
-export async function embedText(text: string): Promise<number[]> {
-  const genAI = gemini();
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
-  const res = await model.embedContent(text);
-  return res.embedding.values;
+  const ai = new GoogleGenAI({ apiKey: key });
+  const res = await ai.models.embedContent({
+    model: "gemini-embedding-001",
+    contents: text,
+    config: { outputDimensionality: 768 },
+  });
+  const values = res.embeddings?.[0]?.values;
+  if (!values) throw new Error("Embedding API returned no values");
+  return values;
 }
