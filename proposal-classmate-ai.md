@@ -33,7 +33,7 @@
 
 ## 4. ข้อมูลมาจากไหน + จุดที่ต้องเขียนข้อมูลกลับ
 - แหล่งข้อมูล: IndexedDB ในเครื่อง (`docs` store: filename, pages, chunks[{page, content}]) — server ไม่มี DB ข้อมูลแอป Supabase เหลือแค่ Auth · หน้า `/` ใช้ SSG (`force-static`) เพราะไม่มีข้อมูลราย user — ถ้ามีข้อมูลราย request ถึงจะใช้ SSR
-- mutation: `POST /api/chat|quiz|summarize` เป็น Route Handler ที่สร้างผลลัพธ์ใหม่ทุกครั้ง (เรียก ThaiLLM ไม่ idempotent) + Auth `signUp`/`signInWithPassword` · การบันทึกถาวรอยู่ฝั่ง client (`saveDoc`/`deleteDoc` ลง IndexedDB)
+- mutation: `POST /api/chat|quiz|summarize` เป็น Route Handler ที่สร้างผลลัพธ์ใหม่ทุกครั้ง (เรียก ThaiLLM ไม่ idempotent) + เขียนตัวเลขนับโควตาผ่าน RPC `bump_usage()` ลงตาราง `daily_usage` (user, วัน, จำนวนครั้ง — ไม่มีเนื้อหา, เกิน 30 ครั้ง/วันตอบ 429) + Auth `signUp`/`signInWithPassword` · การบันทึกไฟล์อยู่ฝั่ง client (`saveDoc`/`deleteDoc` ลง IndexedDB) · ระบบ user มีไว้กันยิง API เกินโควตา ไม่ได้เก็บข้อมูลเรียน
 
 ## 5. แบ่งงานกันยังไง
 - นัท (backend): Route Handlers (`chat/quiz/summarize`) + ThaiLLM prompt/guardrail + Auth gate + deploy Vercel

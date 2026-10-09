@@ -26,8 +26,8 @@
 ## Privacy (local-first)
 - PDF ถูกอ่าน (PDF.js) แตกข้อความ ตัดชิ้น (`lib/local-rag.ts`) และค้น TF-IDF (`searchLocal`) ใน browser ทั้งหมด
 - คลังเอกสารเก็บใน IndexedDB ของเครื่อง (`lib/local-docs.ts`) — ไม่เคยส่งไฟล์ไป server
-- server (`/api/chat|quiz|summarize`) รับแค่ชิ้นที่ค้นเจอ + คำถาม ไปถาม ThaiLLM แล้วทิ้งทันที ไม่ insert อะไรเลย
-- Supabase ใช้แค่ Auth (กันคนนอกยิง API) — ไม่มีตารางข้อมูลแอปแล้ว
+- server (`/api/chat|quiz|summarize`) รับแค่ชิ้นที่ค้นเจอ + คำถาม ไปถาม ThaiLLM แล้วทิ้งทันที — เขียน DB แค่ตัวเลขนับโควตา (`daily_usage`)
+- Supabase ใช้แค่ Auth + ตารางนับโควตา — ไม่มีตารางเนื้อหาแล้ว
 - ห้ามเรียก ThaiLLM จาก browser ให้เรียก `/api/*` เท่านั้น (key อยู่ server)
 
 ## เช็กลิสต์งาน (7 ข้อ) — อยู่ที่ไหน/ทำไมเป็นแบบนั้น
@@ -55,8 +55,9 @@ API (Route Handler): `POST /api/chat`, `POST /api/quiz`, `POST /api/summarize` (
 - ทำไมไม่ SSR: ไม่มีอะไรต้องสด — ส่วนข้อมูลราย user (คลังเอกสาร) อยู่ใน IndexedDB ของเครื่อง อ่านฝั่ง client โดยตรง ไม่ผ่าน server เลยไม่ต้องมี SSR/ISR
 
 ### 4. Mutation ผ่าน Route Handler
-- `POST /api/chat` `{question, context}` → `{answer}` (เรียก ThaiLLM สร้างคำตอบใหม่ทุกครั้ง ไม่ idempotent), `POST /api/quiz` `{topic, context}` → `{quiz}`, `POST /api/summarize` `{context, mode}` → `{summary}` — ทุกเส้นต้อง login (401 ถ้าไม่) แต่ไม่บันทึกอะไรลง DB
-- การบันทึกถาวรอยู่ฝั่ง client: IndexedDB (`saveDoc`/`deleteDoc` ใน `lib/local-docs.ts`) + Supabase Auth (`signUp`/`signInWithPassword`)
+- `POST /api/chat` `{question, context}` → `{answer}`, `POST /api/quiz` `{topic, context}` → `{quiz}`, `POST /api/summarize` `{context, mode}` → `{summary}` — ทุกเส้นต้อง login (401 ถ้าไม่), ครบโควตา 30 ครั้ง/วันตอบ 429
+- **write ลง DB จุดเดียว:** `daily_usage` (user, วัน, จำนวนครั้ง — ตัวเลขล้วน ไม่มีเนื้อหา) ผ่าน RPC `bump_usage()` ที่นับแบบ atomic — นี่คือเหตุผลที่ต้องมีระบบ user: กันยิง ThaiLLM เกินโควตา
+- การบันทึกไฟล์อยู่ฝั่ง client: IndexedDB (`saveDoc`/`deleteDoc` ใน `lib/local-docs.ts`) + Supabase Auth (`signUp`/`signInWithPassword`)
 
 ### 5. Global state ฝั่ง client
 - `components/AuthProvider.tsx` = React Context (`createContext` + `useAuth()`) ห่อทั้งแอปใน `app/layout.tsx` แชร์ `email/name/loading` ให้ `AppShell` + ทุกหน้าโดยไม่ prop-drilling เก็บแค่ display info ไม่ถือ key

@@ -7,11 +7,16 @@ import { listDocs } from "@/lib/local-docs";
 
 export default function StatusPage() {
   const [count, setCount] = useState<number | null>(null);
+  const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
 
   useEffect(() => {
     listDocs()
       .then((all) => setCount(all.length))
       .catch(() => setCount(0));
+    fetch("/api/quota")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((q) => q && setQuota(q))
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -31,7 +36,10 @@ export default function StatusPage() {
         <div className="stat-grid">
           <div className="stat-card"><span>ไฟล์ออกนอกเครื่อง</span><strong>0</strong></div>
           <div className="stat-card"><span>ประวัติแชทที่บันทึก</span><strong>0</strong></div>
-          <div className="stat-card"><span>login ไว้กันยิง API</span><strong>✓</strong></div>
+          <div className="stat-card">
+            <span>โควตา AI วันนี้{quota ? "" : " (login ก่อน)"}</span>
+            <strong>{quota ? `${quota.remaining}/${quota.limit}` : "–"}</strong>
+          </div>
         </div>
         <p style={{ marginTop: 24 }}>
           <Link className="button" href="/upload">เพิ่มเอกสาร</Link>

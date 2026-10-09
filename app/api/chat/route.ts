@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { generateAnswer } from "@/lib/thaillm";
 import { CHAT_SYSTEM_PROMPT, NOT_FOUND_TH } from "@/lib/prompts";
+import { checkRateLimit, DAILY_LIMIT } from "@/lib/rate-limit";
 
 export type IncomingChunk = { content: string; page: number; file?: string };
 
@@ -17,6 +18,13 @@ export async function POST(req: NextRequest) {
   );
   const { data } = await sb.auth.getUser();
   if (!data.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  const rl = await checkRateLimit(sb);
+  if (!rl.ok)
+    return NextResponse.json(
+      { error: `ใช้ครบ ${DAILY_LIMIT} ครั้ง/วันแล้ว ลองใหม่พรุ่งนี้` },
+      { status: 429 }
+    );
 
   const { question, context } = await req.json();
   if (!question?.trim()) return NextResponse.json({ error: "empty question" }, { status: 400 });
