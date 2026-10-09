@@ -3,11 +3,14 @@
 // render ล่วงหน้าบน server จึงเป็น client
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { friendlyApiError } from "@/lib/api-error";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const send = async () => {
@@ -19,17 +22,20 @@ export default function UploadPage() {
     setBusy(true);
     setMessage("");
     setIsError(false);
+    setNeedsLogin(false);
     try {
       const formData = new FormData();
       formData.append("file", file);
       const response = await fetch("/api/ingest", { method: "POST", body: formData });
       const result: unknown = await response.json();
       if (!response.ok) {
-        const detail =
-          typeof result === "object" && result !== null && "error" in result
-            ? String(result.error)
-            : "เซิร์ฟเวอร์ไม่สามารถประมวลผลไฟล์ได้";
-        setMessage(detail);
+        const friendly = friendlyApiError(
+          response.status,
+          result,
+          "เซิร์ฟเวอร์ไม่สามารถประมวลผลไฟล์ได้"
+        );
+        setMessage(friendly.text);
+        setNeedsLogin(friendly.needsLogin);
         setIsError(true);
         return;
       }
@@ -74,7 +80,17 @@ export default function UploadPage() {
             {busy ? "กำลังอัปโหลดและประมวลผล..." : "อัปโหลดเอกสาร"}
           </button>
         </div>
-        {message && <p className={`notice${isError ? " error" : ""}`} role={isError ? "alert" : "status"}>{message}</p>}
+        {message && (
+          <p className={`notice${isError ? " error" : ""}`} role={isError ? "alert" : "status"}>
+            {message}
+            {needsLogin && (
+              <>
+                {" "}
+                <Link href="/login">ไปหน้าเข้าสู่ระบบ</Link>
+              </>
+            )}
+          </p>
+        )}
       </section>
     </main>
   );

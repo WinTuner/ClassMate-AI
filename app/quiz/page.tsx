@@ -2,6 +2,8 @@
 // เฉลยเป็นข้อๆ) เป็น state ฝั่ง browser ล้วน + ยิง POST /api/quiz จึงต้องเป็น client
 "use client";
 import { useState } from "react";
+import Link from "next/link";
+import { friendlyApiError } from "@/lib/api-error";
 
 type QuizItem = {
   type?: string;
@@ -46,6 +48,7 @@ export default function QuizPage() {
   const [picked, setPicked] = useState<(number | null)[]>([]);
   const [revealed, setRevealed] = useState<boolean[]>([]);
   const [error, setError] = useState("");
+  const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const send = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -53,6 +56,7 @@ export default function QuizPage() {
     if (!topic.trim()) return;
     setBusy(true);
     setError("");
+    setNeedsLogin(false);
     setItems(null);
     setRawFallback("");
     setPicked([]);
@@ -65,11 +69,13 @@ export default function QuizPage() {
       });
       const data: unknown = await response.json();
       if (!response.ok) {
-        const detail =
-          typeof data === "object" && data !== null && "error" in data
-            ? String(data.error)
-            : "ไม่สามารถสร้างแบบทดสอบได้ กรุณาลองอีกครั้ง";
-        setError(detail);
+        const friendly = friendlyApiError(
+          response.status,
+          data,
+          "ไม่สามารถสร้างแบบทดสอบได้ กรุณาลองอีกครั้ง"
+        );
+        setError(friendly.text);
+        setNeedsLogin(friendly.needsLogin);
         return;
       }
       const quiz =
@@ -120,7 +126,17 @@ export default function QuizPage() {
             {busy ? "กำลังสร้างแบบทดสอบ..." : "สร้างแบบทดสอบ"}
           </button>
         </form>
-        {error && <p className="notice error" role="alert">{error}</p>}
+        {error && (
+          <p className="notice error" role="alert">
+            {error}
+            {needsLogin && (
+              <>
+                {" "}
+                <Link href="/login">ไปหน้าเข้าสู่ระบบ</Link>
+              </>
+            )}
+          </p>
+        )}
         {items && items.length > 0 && (
           <div aria-live="polite">
             <p className="quiz-score">
