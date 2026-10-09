@@ -1,64 +1,41 @@
-// Server Component — เหตุผล: เช็ค Supabase ด้วย SERVICE_ROLE_KEY ซึ่งอยู่บน server
-// เท่านั้น (ห้ามหลุดไป browser) + นับจำนวนแถวแบบไม่แยก user
-// ไม่มี "use client" ทั้งไฟล์ = Server Component แท้
-// Data fetching: SSR เจตนา (dynamic="force-dynamic" + revalidate=0)
-// — ทำไมไม่ SSG/ISR: หน้านี้คือ health-check ต้องสดทุกครั้งที่เปิด
-// ถ้า cache ไว้จะบอกว่า "พร้อม" ทั้งที่ DB ล่มไปแล้ว
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Client Component — เหตุผล: หน้านี้โชว์สถานะคลังในเครื่อง (IndexedDB)
+// ซึ่งอ่านได้แค่ใน browser + ข้อความ privacy จึงเป็น client
+"use client";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { listDocs } from "@/lib/local-docs";
 
-async function getStatus() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const checkedAt = new Date().toISOString();
-  if (!url || !serviceKey) {
-    return {
-      ok: false,
-      checkedAt,
-      message: "Missing Supabase server env — ตั้งค่าใน Vercel → Settings → Environment Variables",
-      counts: null,
-    };
-  }
-  try {
-    const { createClient } = await import("@supabase/supabase-js");
-    const sb = createClient(url, serviceKey);
-    const [docs, quizzes] = await Promise.all([
-      sb.from("documents").select("id", { count: "exact", head: true }),
-      sb.from("quizzes").select("id", { count: "exact", head: true }),
-    ]);
-    const err = docs.error || quizzes.error;
-    if (err) return { ok: false, checkedAt, message: err.message, counts: null };
-    return {
-      ok: true,
-      checkedAt,
-      message: "เชื่อม Supabase สำเร็จ (server-side fetch)",
-      counts: {
-        documents: docs.count ?? 0,
-        quizzes: quizzes.count ?? 0,
-      },
-    };
-  } catch (e: any) {
-    return { ok: false, checkedAt, message: e?.message ?? "fetch failed", counts: null };
-  }
-}
+export default function StatusPage() {
+  const [count, setCount] = useState<number | null>(null);
 
-export default async function StatusPage() {
-  const s = await getStatus();
+  useEffect(() => {
+    listDocs()
+      .then((all) => setCount(all.length))
+      .catch(() => setCount(0));
+  }, []);
+
   return (
     <main className="page-container narrow">
-      <p className="eyebrow">การเชื่อมต่อ</p>
+      <p className="eyebrow">ความเป็นส่วนตัว</p>
       <h1 className="page-title">สถานะระบบ</h1>
-      <p className="page-description">ตรวจสอบการเชื่อมต่อ Supabase และจำนวนข้อมูลในระบบ</p>
+      <p className="page-description">เอกสารของคุณอยู่แค่ใน browser นี้ ไม่เคยส่งไป server</p>
       <section className="panel">
-        <h2>{s.ok ? "ระบบพร้อมใช้งาน" : "ระบบยังไม่พร้อม"}</h2>
-        <p className={`notice${s.ok ? "" : " error"}`} role={s.ok ? "status" : "alert"}>{s.message}</p>
-        <p className="muted-text">ตรวจสอบล่าสุด {new Date(s.checkedAt).toLocaleString("th-TH")}</p>
-      {s.counts && (
+        <h2>โหมด privacy เปิดอยู่</h2>
+        <p className="notice" role="status">
+          PDF ถูกอ่าน แตกข้อความ และค้นในเครื่องทั้งหมด — server รับแค่ชิ้นที่ค้นเจอ
+         เพื่อถาม AI แล้วทิ้งทันที ไม่บันทึกไฟล์ ประวัติแชท หรือผลสอบ
+        </p>
+        <p className="muted-text">
+          เอกสารในเครื่องนี้: {count === null ? "กำลังนับ..." : `${count} ไฟล์`}
+        </p>
         <div className="stat-grid">
-          <div className="stat-card"><span>เอกสาร</span><strong>{s.counts.documents}</strong></div>
-          <div className="stat-card"><span>แบบทดสอบ</span><strong>{s.counts.quizzes}</strong></div>
+          <div className="stat-card"><span>ไฟล์ออกนอกเครื่อง</span><strong>0</strong></div>
+          <div className="stat-card"><span>ประวัติแชทที่บันทึก</span><strong>0</strong></div>
+          <div className="stat-card"><span>login ไว้กันยิง API</span><strong>✓</strong></div>
         </div>
-      )}
+        <p style={{ marginTop: 24 }}>
+          <Link className="button" href="/upload">เพิ่มเอกสาร</Link>
+        </p>
       </section>
     </main>
   );

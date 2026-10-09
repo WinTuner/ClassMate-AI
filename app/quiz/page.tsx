@@ -1,9 +1,12 @@
 // Client Component — เหตุผล: โหมดทำข้อสอบ interactive (เลือกช้อยส์, นับคะแนน,
-// เฉลยเป็นข้อๆ) เป็น state ฝั่ง browser ล้วน + ยิง POST /api/quiz จึงต้องเป็น client
+// เฉลยเป็นข้อๆ) เป็น state ฝั่ง browser ล้วน + ค้น TF-IDF ในเครื่องก่อนยิง
+// POST /api/quiz — ไฟล์ไม่ออกจากเครื่อง ไม่บันทึกผล
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { friendlyApiError } from "@/lib/api-error";
+import { searchLocal, type LocalChunk } from "@/lib/local-rag";
+import { listDocs, type LocalDoc } from "@/lib/local-docs";
 
 type QuizItem = {
   type?: string;
@@ -42,6 +45,8 @@ const answerIndex = (item: QuizItem): number | null => {
 };
 
 export default function QuizPage() {
+  const [docs, setDocs] = useState<LocalDoc[]>([]);
+  const [docId, setDocId] = useState("");
   const [topic, setTopic] = useState("");
   const [items, setItems] = useState<QuizItem[] | null>(null);
   const [rawFallback, setRawFallback] = useState("");
@@ -51,9 +56,20 @@ export default function QuizPage() {
   const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    listDocs()
+      .then((all) => {
+        setDocs(all);
+        if (all.length > 0) setDocId(all[0].id);
+      })
+      .catch(() => setDocs([]));
+  }, []);
+
   const send = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!topic.trim()) return;
+    if (!topic.trim() || !docId) return;
+    const doc = docs.find((d) => d.id === docId);
+    if (!doc) return;
     setBusy(true);
     setError("");
     setNeedsLogin(false);
@@ -62,10 +78,20 @@ export default function QuizPage() {
     setPicked([]);
     setRevealed([]);
     try {
+      const hits = searchLocal(doc.chunks as LocalChunk[], topic.trim(), 8);
+      if (hits.length === 0) {
+        setError("ไม่พบเนื้อหาที่ตรงในเอกสารที่เลือก ลองเปลี่ยนคำค้น");
+        return;
+      }
       const response = await fetch("/api/quiz", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: topic.trim(), type: "MCQ", n: 5 }),
+        body: JSON.stringify({
+          topic: topic.trim(),
+          type: "MCQ",
+          n: 5,
+          context: hits.map((h) => ({ content: h.content, page: h.page, file: doc.filename })),
+        }),
       });
       const data: unknown = await response.json();
       if (!response.ok) {
@@ -108,9 +134,31 @@ export default function QuizPage() {
     <main className="page-container narrow">
       <p className="eyebrow">ทบทวนความเข้าใจ</p>
       <h1 className="page-title">สร้างแบบทดสอบ</h1>
-      <p className="page-description">ระบุหัวข้อที่ต้องการฝึก แล้วรับแบบทดสอบปรนัย 5 ข้อ</p>
+      <p className="page-description">เลือกเอกสาร ระบุหัวข้อ แล้วรับแบบทดสอบปรนัย 5 ข้อจากเนื้อหาในเครื่อง</p>
       <section className="panel">
+        {docs.length === 0 ? (
+          <div className="answer-box">
+            <h2>ยังไม่มีเอกสารในเครื่อง</h2>
+            <p className="muted-text">เพิ่มไฟล์ PDF ก่อน แล้วกลับมาสร้างแบบทดสอบได้เลย</p>
+            <Link className="button" href="/upload">เพิ่มเอกสาร</Link>
+          </div>
+        ) : (
         <form className="form-stack" onSubmit={send}>
+          <label className="field-label" htmlFor="quiz-doc">
+            เอกสารที่ใช้ออกข้อสอบ
+            <select
+              className="select-input"
+              id="quiz-doc"
+              value={docId}
+              onChange={(e) => setDocId(e.target.value)}
+            >
+              {docs.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.filename} ({d.pages} หน้า)
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="field-label" htmlFor="quiz-topic">
             หัวข้อที่ต้องการทบทวน
             <input
@@ -126,6 +174,7 @@ export default function QuizPage() {
             {busy ? "กำลังสร้างแบบทดสอบ..." : "สร้างแบบทดสอบ"}
           </button>
         </form>
+        )}
         {error && (
           <p className="notice error" role="alert">
             {error}

@@ -58,14 +58,8 @@ export default function SignupPage() {
         return;
       }
       if (data.session) {
-        // เข้าใช้ได้ทันที (โปรเจกต์ปิด email confirmation) — เก็บแถว users ไว้ด้วยแบบ best-effort
-        try {
-          await sb
-            .from("users")
-            .upsert({ id: data.user?.id, email: values.email.trim(), display_name: values.name.trim() });
-        } catch {
-          /* ไม่บล็อกการสมัคร */
-        }
+        // เข้าใช้ได้ทันที (โปรเจกต์ปิด email confirmation)
+        // หมายเหตุ privacy: ไม่เก็บแถว users บน server แล้ว — มีแค่บัญชี Auth ไว้กันยิง API
         window.location.href = "/chat";
       } else {
         // โปรเจกต์เปิด email confirmation — ให้ผู้ใช้กดลิงก์ในอีเมลก่อน

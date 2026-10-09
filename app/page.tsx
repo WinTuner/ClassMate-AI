@@ -1,5 +1,9 @@
 // Server Component (default — ไม่มี "use client") — เหตุผล: หน้า landing เป็น
 // เนื้อหา static ล้วน (ไม่มี state/fetch) render บน server ได้เลย เร็ว + SEO ดี
+// Data fetching: SSG เจตนา (force-static) — หน้านี้ไม่มีข้อมูลราย user/request
+// เลยให้ Next prerender เป็น HTML ครั้งเดียวตอน build แทนที่จะ render ใหม่ทุก hit
+export const dynamic = "force-static";
+
 import Link from "next/link";
 
 export default function Home() {

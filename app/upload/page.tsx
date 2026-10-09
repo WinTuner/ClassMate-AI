@@ -1,50 +1,76 @@
-// Client Component — เหตุผล: ต้องอ่าน File object จาก <input type="file"> ฝั่ง
-// browser + ส่ง FormData ไป POST /api/ingest + โชว์สถานะอัปโหลด ไม่มีอะไรให้
-// render ล่วงหน้าบน server จึงเป็น client
+// Client Component — ทั้งหน้าทำงานใน browser 100%: อ่านไฟล์ PDF ด้วย PDF.js,
+// แตกข้อความรายหน้า, ตัดชิ้น, เก็บลง IndexedDB — ไฟล์ไม่ออกจากเครื่องเลย
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { friendlyApiError } from "@/lib/api-error";
+import { chunkPages } from "@/lib/local-rag";
+import { saveDoc, findDuplicateName } from "@/lib/local-docs";
+
+const WORKER = "https://unpkg.com/pdfjs-dist@6.4.299/build/pdf.worker.min.mjs";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
-  const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const send = async () => {
     if (!file) {
-      setMessage("กรุณาเลือกไฟล์ PDF ก่อนอัปโหลด");
+      setMessage("กรุณาเลือกไฟล์ PDF ก่อน");
       setIsError(true);
       return;
     }
     setBusy(true);
     setMessage("");
     setIsError(false);
-    setNeedsLogin(false);
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await fetch("/api/ingest", { method: "POST", body: formData });
-      const result: unknown = await response.json();
-      if (!response.ok) {
-        const friendly = friendlyApiError(
-          response.status,
-          result,
-          "เซิร์ฟเวอร์ไม่สามารถประมวลผลไฟล์ได้"
-        );
-        setMessage(friendly.text);
-        setNeedsLogin(friendly.needsLogin);
+      // 1. validate เบื้องต้นในเครื่อง (ชนิด + header %PDF)
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const head = new TextDecoder().decode(buf.slice(0, 5));
+      if (file.type !== "application/pdf" || head !== "%PDF-") {
+        setMessage("ไฟล์นี้ไม่ใช่ PDF ที่ถูกต้อง");
         setIsError(true);
         return;
       }
-      setMessage("อัปโหลดและส่งเอกสารให้ระบบประมวลผลแล้ว");
+      // 2. กันชื่อซ้ำในคลังเครื่องนี้
+      if (await findDuplicateName(file.name)) {
+        setMessage(`ไฟล์ "${file.name}" อยู่ในคลังแล้ว ไม่ต้องเพิ่มซ้ำ`);
+        setIsError(true);
+        return;
+      }
+      // 3. parse รายหน้าใน browser
+      const pdfjs = await import("pdfjs-dist");
+      pdfjs.GlobalWorkerOptions.workerSrc = WORKER;
+      const pdf = await pdfjs.getDocument({ data: buf }).promise;
+      const pages: { page: number; text: string }[] = [];
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        const text = (tc.items as { str?: string }[])
+          .map((it) => it.str ?? "")
+          .join(" ");
+        pages.push({ page: i, text });
+      }
+      const chunks = chunkPages(pages);
+      if (chunks.length === 0) {
+        setMessage("ดึงข้อความไม่ได้ (สแกนภาพล้วน?) เลือกไฟล์ที่มี text layer");
+        setIsError(true);
+        return;
+      }
+      // 4. เก็บลงเครื่อง (IndexedDB) — ไม่ส่งไป server
+      await saveDoc({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        filename: file.name,
+        pages: pdf.numPages,
+        chunks,
+        createdAt: Date.now(),
+      });
+      setMessage(`บันทึก "${file.name}" ลงเครื่องแล้ว (${pdf.numPages} หน้า) ถามได้เลยที่หน้าแชท`);
       setFile(null);
       const input = document.getElementById("pdf-file") as HTMLInputElement | null;
       if (input) input.value = "";
     } catch {
-      setMessage("เชื่อมต่อระบบอัปโหลดไม่ได้ กรุณาลองอีกครั้ง");
+      setMessage("อ่านไฟล์ไม่ได้ กรุณาลองไฟล์อื่น");
       setIsError(true);
     } finally {
       setBusy(false);
@@ -56,7 +82,7 @@ export default function UploadPage() {
       <p className="eyebrow">เริ่มต้นการเรียน</p>
       <h1 className="page-title">เพิ่มเอกสารของคุณ</h1>
       <p className="page-description">
-        อัปโหลดสไลด์หรือเอกสาร PDF เพื่อถามคำถามและสร้างแบบทดสอบจากเนื้อหาของคุณ
+        ไฟล์อยู่ในเครื่องคุณเท่านั้น — ระบบอ่านและเก็บใน browser ไม่ส่งไป server
       </p>
       <section className="panel">
         <div className="form-stack">
@@ -64,7 +90,7 @@ export default function UploadPage() {
             <span>
               <strong>{file ? file.name : "เลือกไฟล์ PDF จากอุปกรณ์"}</strong>
               <br />
-              <span className="form-help">ระบบจะตรวจสอบชนิดไฟล์และเนื้อหาก่อนบันทึก</span>
+              <span className="form-help">อ่านในเครื่อง ไม่มีการอัปโหลด</span>
             </span>
             <input
               id="pdf-file"
@@ -77,16 +103,16 @@ export default function UploadPage() {
             />
           </label>
           <button className="button" type="button" onClick={send} disabled={!file || busy}>
-            {busy ? "กำลังอัปโหลดและประมวลผล..." : "อัปโหลดเอกสาร"}
+            {busy ? "กำลังอ่านไฟล์ในเครื่อง..." : "เพิ่มเข้าคลังในเครื่อง"}
           </button>
         </div>
         {message && (
           <p className={`notice${isError ? " error" : ""}`} role={isError ? "alert" : "status"}>
             {message}
-            {needsLogin && (
+            {!isError && (
               <>
                 {" "}
-                <Link href="/login">ไปหน้าเข้าสู่ระบบ</Link>
+                <Link href="/chat">ไปถาม AI</Link>
               </>
             )}
           </p>

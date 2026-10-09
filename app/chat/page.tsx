@@ -1,50 +1,60 @@
-// Client Component — เหตุผล: หน้าแชท interactive ทั้งหมด (พิมพ์คำถาม,
-// แสดง loading/error แบบทันที) ต้องใช้ useState + fetch POST /api/chat
-// จาก browser จึงรันบน client (ไม่เก็บประวัติ ถาม-ตอบจบในครั้งเดียว)
+// Client Component — เหตุผล: ทุกอย่าง interactive ใน browser (เลือกเอกสาร,
+// พิมพ์คำถาม, ค้น TF-IDF ในเครื่อง, ยิง POST /api/chat) — ไฟล์ไม่ออกจากเครื่อง
+// มีแค่ชิ้นที่ค้นเจอถูกส่งไปให้ ThaiLLM ตอบ ไม่บันทึกประวัติ
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { friendlyApiError } from "@/lib/api-error";
+import { searchLocal, type LocalChunk } from "@/lib/local-rag";
+import { listDocs, type LocalDoc } from "@/lib/local-docs";
 
-type Citation = { file?: unknown; page?: unknown; score?: unknown };
-type ChatResult = {
-  answer?: string;
-  citations?: unknown[];
-  [key: string]: unknown;
-};
-
-const citationText = (c: unknown, i: number): string => {
-  if (typeof c === "string") return c;
-  if (typeof c === "object" && c !== null) {
-    const { file, page, score } = c as Citation;
-    const name = typeof file === "string" ? file : `แหล่งที่ ${i + 1}`;
-    const pg = typeof page === "number" ? ` หน้า ${page}` : "";
-    const sc = typeof score === "number" ? ` (${score.toFixed(2)})` : "";
-    return `${name}${pg}${sc}`;
-  }
-  return JSON.stringify(c);
-};
+type Citation = { file: string; page: number };
 
 export default function ChatPage() {
   const { name } = useAuth();
+  const [docs, setDocs] = useState<LocalDoc[]>([]);
+  const [docId, setDocId] = useState("");
   const [q, setQ] = useState("");
-  const [result, setResult] = useState<ChatResult | null>(null);
+  const [answer, setAnswer] = useState<string | null>(null);
+  const [citations, setCitations] = useState<Citation[]>([]);
   const [error, setError] = useState("");
   const [needsLogin, setNeedsLogin] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    listDocs()
+      .then((all) => {
+        setDocs(all);
+        if (all.length > 0) setDocId(all[0].id);
+      })
+      .catch(() => setDocs([]));
+  }, []);
+
   const send = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!q.trim()) return;
+    if (!q.trim() || !docId) return;
+    const doc = docs.find((d) => d.id === docId);
+    if (!doc) return;
     setBusy(true);
     setError("");
     setNeedsLogin(false);
     try {
+      // ค้นในเครื่องก่อน — ได้ชิ้นไหนค่อยส่งชิ้นนั้นไปถาม
+      const hits = searchLocal(doc.chunks as LocalChunk[], q.trim(), 5);
+      if (hits.length === 0) {
+        setAnswer("ไม่พบในเอกสารที่เลือก");
+        setCitations([]);
+        setQ("");
+        return;
+      }
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q.trim() }),
+        body: JSON.stringify({
+          question: q.trim(),
+          context: hits.map((h) => ({ content: h.content, page: h.page, file: doc.filename })),
+        }),
       });
       const data: unknown = await response.json();
       if (!response.ok) {
@@ -57,8 +67,9 @@ export default function ChatPage() {
         setNeedsLogin(friendly.needsLogin);
         return;
       }
-      const answer = data as ChatResult;
-      setResult(answer);
+      const out = data as { answer?: unknown };
+      setAnswer(typeof out.answer === "string" ? out.answer : JSON.stringify(data));
+      setCitations(hits.map((h) => ({ file: doc.filename, page: h.page })));
       setQ("");
     } catch {
       setError("เชื่อมต่อระบบถามตอบไม่ได้ กรุณาลองอีกครั้ง");
@@ -67,30 +78,51 @@ export default function ChatPage() {
     }
   };
 
-  const citations = Array.isArray(result?.citations) ? result.citations : [];
-
   return (
     <main className="page-container narrow">
       <p className="eyebrow">ผู้ช่วยการเรียน {name ? `· ${name}` : ""}</p>
       <h1 className="page-title">ถามจากเอกสารของคุณ</h1>
       <p className="page-description">
-        ถามได้ทั้งสรุป แนวคิด หรือรายละเอียดจาก PDF ที่อัปโหลด ระบบจะแสดงแหล่งอ้างอิงเมื่อมีข้อมูล
+        เลือกเอกสาร แล้วถามได้ทั้งสรุป แนวคิด หรือรายละเอียด — ค้นในเครื่องก่อนส่งไปถาม AI
       </p>
       <section className="panel">
-        <form className="form-stack" onSubmit={send}>
-          <label className="field-label" htmlFor="question">คำถาม</label>
-          <textarea
-            className="text-area"
-            id="question"
-            value={q}
-            onChange={(event) => setQ(event.target.value)}
-            placeholder="เช่น อธิบายแนวคิดหลักในบทนี้ให้เข้าใจง่าย"
-            required
-          />
-          <button className="button" type="submit" disabled={busy || !q.trim()}>
-            {busy ? "กำลังค้นหาคำตอบ..." : "ส่งคำถาม"}
-          </button>
-        </form>
+        {docs.length === 0 ? (
+          <div className="answer-box">
+            <h2>ยังไม่มีเอกสารในเครื่อง</h2>
+            <p className="muted-text">เพิ่มไฟล์ PDF ก่อน แล้วกลับมาถามได้เลย</p>
+            <Link className="button" href="/upload">เพิ่มเอกสาร</Link>
+          </div>
+        ) : (
+          <form className="form-stack" onSubmit={send}>
+            <label className="field-label" htmlFor="doc">
+              เอกสารที่จะถาม
+              <select
+                className="select-input"
+                id="doc"
+                value={docId}
+                onChange={(e) => setDocId(e.target.value)}
+              >
+                {docs.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.filename} ({d.pages} หน้า)
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-label" htmlFor="question">คำถาม</label>
+            <textarea
+              className="text-area"
+              id="question"
+              value={q}
+              onChange={(event) => setQ(event.target.value)}
+              placeholder="เช่น อธิบายแนวคิดหลักในบทนี้ให้เข้าใจง่าย"
+              required
+            />
+            <button className="button" type="submit" disabled={busy || !q.trim()}>
+              {busy ? "กำลังค้นในเครื่อง+ถาม AI..." : "ส่งคำถาม"}
+            </button>
+          </form>
+        )}
         {error && (
           <p className="notice error" role="alert">
             {error}
@@ -102,18 +134,16 @@ export default function ChatPage() {
             )}
           </p>
         )}
-        {result && (
+        {answer && (
           <div className="answer-box" aria-live="polite">
             <h2>คำตอบ</h2>
-            <p className="answer-text">
-              {typeof result.answer === "string" ? result.answer : JSON.stringify(result, null, 2)}
-            </p>
+            <p className="answer-text">{answer}</p>
             {citations.length > 0 && (
               <div>
                 <h3 style={{ marginTop: 22 }}>แหล่งอ้างอิง</h3>
                 <ul className="citation-list">
-                  {citations.map((citation, index) => (
-                    <li key={index}>{citationText(citation, index)}</li>
+                  {citations.map((c, i) => (
+                    <li key={i}>{c.file} หน้า {c.page}</li>
                   ))}
                 </ul>
               </div>
