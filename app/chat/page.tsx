@@ -7,11 +7,24 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { friendlyApiError } from "@/lib/api-error";
 
+type Citation = { file?: unknown; page?: unknown; score?: unknown };
 type ChatResult = {
   answer?: string;
   citations?: unknown[];
   conversation_id?: string;
   [key: string]: unknown;
+};
+
+const citationText = (c: unknown, i: number): string => {
+  if (typeof c === "string") return c;
+  if (typeof c === "object" && c !== null) {
+    const { file, page, score } = c as Citation;
+    const name = typeof file === "string" ? file : `แหล่งที่ ${i + 1}`;
+    const pg = typeof page === "number" ? ` หน้า ${page}` : "";
+    const sc = typeof score === "number" ? ` (${score.toFixed(2)})` : "";
+    return `${name}${pg}${sc}`;
+  }
+  return JSON.stringify(c);
 };
 
 export default function ChatPage() {
@@ -103,9 +116,7 @@ export default function ChatPage() {
                 <h3 style={{ marginTop: 22 }}>แหล่งอ้างอิง</h3>
                 <ul className="citation-list">
                   {citations.map((citation, index) => (
-                    <li key={index}>
-                      {typeof citation === "string" ? citation : JSON.stringify(citation)}
-                    </li>
+                    <li key={index}>{citationText(citation, index)}</li>
                   ))}
                 </ul>
               </div>
