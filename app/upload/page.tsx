@@ -1,3 +1,6 @@
+// Client Component — เหตุผล: ต้องอ่าน File object จาก <input type="file"> ฝั่ง
+// browser + ส่ง FormData ไป POST /api/ingest + โชว์สถานะอัปโหลด ไม่มีอะไรให้
+// render ล่วงหน้าบน server จึงเป็น client
 "use client";
 import { useState } from "react";
 

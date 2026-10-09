@@ -1,3 +1,5 @@
+// Client Component — เหตุผล: โหมดทำข้อสอบ interactive (เลือกช้อยส์, นับคะแนน,
+// เฉลยเป็นข้อๆ) เป็น state ฝั่ง browser ล้วน + ยิง POST /api/quiz จึงต้องเป็น client
 "use client";
 import { useState } from "react";
 

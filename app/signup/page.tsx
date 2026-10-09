@@ -1,30 +1,40 @@
+// Client Component — เหตุผล: ฟอร์มสมัครสมาชิก interactive (validate + เช็ค
+// รหัสผ่านตรงกัน + เรียก Supabase Auth ฝั่ง browser) จึงต้องเป็น client
+// validate ด้วย react-hook-form + zod (signupSchema) รวมกติกา: ชื่อ/อีเมล/รหัสผ่าน≥6/ยืนยันตรงกัน
 "use client";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { supabaseBrowser } from "@/lib/supabase-client";
 
+const signupSchema = z
+  .object({
+    name: z.string().min(1, "กรุณากรอกชื่อที่แสดง").max(50, "ชื่อยาวเกิน 50 ตัวอักษร"),
+    email: z.string().min(1, "กรุณากรอกอีเมล").email("รูปแบบอีเมลไม่ถูกต้อง"),
+    password: z.string().min(6, "รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร"),
+    confirm: z.string().min(1, "กรุณายืนยันรหัสผ่าน"),
+  })
+  .refine((v) => v.password === v.confirm, {
+    message: "รหัสผ่านสองช่องไม่ตรงกัน",
+    path: ["confirm"],
+  });
+type SignupValues = z.infer<typeof signupSchema>;
+
 export default function SignupPage() {
-  const [name, setName] = useState("");
-  const [em, setEm] = useState("");
-  const [pw, setPw] = useState("");
-  const [pw2, setPw2] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
 
-  const signup = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (pw !== pw2) {
-      setMessage("รหัสผ่านสองช่องไม่ตรงกัน");
-      setIsError(true);
-      return;
-    }
-    if (pw.length < 6) {
-      setMessage("รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร");
-      setIsError(true);
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupValues>({ resolver: zodResolver(signupSchema) });
+
+  const signup = async (values: SignupValues) => {
     setBusy(true);
     setMessage("");
     setIsError(false);
@@ -38,9 +48,9 @@ export default function SignupPage() {
 
     try {
       const { data, error } = await sb.auth.signUp({
-        email: em.trim(),
-        password: pw,
-        options: { data: { display_name: name.trim() } },
+        email: values.email.trim(),
+        password: values.password,
+        options: { data: { display_name: values.name.trim() } },
       });
       if (error) {
         setMessage(error.message);
@@ -52,7 +62,7 @@ export default function SignupPage() {
         try {
           await sb
             .from("users")
-            .upsert({ id: data.user?.id, email: em.trim(), display_name: name.trim() });
+            .upsert({ id: data.user?.id, email: values.email.trim(), display_name: values.name.trim() });
         } catch {
           /* ไม่บล็อกการสมัคร */
         }
@@ -85,7 +95,7 @@ export default function SignupPage() {
             {message} จากนั้นไป <Link href="/login">เข้าสู่ระบบ</Link>
           </div>
         ) : (
-          <form className="form-stack" onSubmit={signup}>
+          <form className="form-stack" onSubmit={handleSubmit(signup)} noValidate>
             <label className="field-label">
               ชื่อที่แสดง
               <input
@@ -93,10 +103,10 @@ export default function SignupPage() {
                 type="text"
                 autoComplete="nickname"
                 placeholder="เช่น มินตรา"
-                required
-                value={name}
-                onChange={(event) => setName(event.target.value)}
+                {...register("name")}
+                aria-invalid={!!errors.name}
               />
+              {errors.name && <span className="notice error" role="alert">{errors.name.message}</span>}
             </label>
             <label className="field-label">
               อีเมล
@@ -105,10 +115,10 @@ export default function SignupPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="you@example.com"
-                required
-                value={em}
-                onChange={(event) => setEm(event.target.value)}
+                {...register("email")}
+                aria-invalid={!!errors.email}
               />
+              {errors.email && <span className="notice error" role="alert">{errors.email.message}</span>}
             </label>
             <label className="field-label">
               รหัสผ่าน
@@ -117,11 +127,10 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="อย่างน้อย 6 ตัวอักษร"
-                required
-                minLength={6}
-                value={pw}
-                onChange={(event) => setPw(event.target.value)}
+                {...register("password")}
+                aria-invalid={!!errors.password}
               />
+              {errors.password && <span className="notice error" role="alert">{errors.password.message}</span>}
             </label>
             <label className="field-label">
               ยืนยันรหัสผ่าน
@@ -130,10 +139,10 @@ export default function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 placeholder="พิมพ์รหัสผ่านอีกครั้ง"
-                required
-                value={pw2}
-                onChange={(event) => setPw2(event.target.value)}
+                {...register("confirm")}
+                aria-invalid={!!errors.confirm}
               />
+              {errors.confirm && <span className="notice error" role="alert">{errors.confirm.message}</span>}
             </label>
             <button className="button" type="submit" disabled={busy}>
               {busy ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}

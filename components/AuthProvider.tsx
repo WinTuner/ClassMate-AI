@@ -2,7 +2,9 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabaseBrowser } from "@/lib/supabase-client";
 
-// Context เก็บแค่ display info โชว์ชื่อ — ไม่ถือ API key ใดๆ
+// Client Component + global state ฝั่ง client (React Context) — เหตุผล: ต้องใช้
+// useState/useEffect อ่าน Supabase session ใน browser แล้วแชร์ให้ทุกหน้าผ่าน
+// useAuth() โดยไม่ prop-drilling; เก็บแค่ display info (email/name) ไม่ถือ API key ใดๆ
 type AuthCtx = { email: string | null; name: string | null; loading: boolean };
 const Ctx = createContext<AuthCtx>({ email: null, name: null, loading: true });
 export const useAuth = () => useContext(Ctx);

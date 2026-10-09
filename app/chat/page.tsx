@@ -1,3 +1,6 @@
+// Client Component — เหตุผล: หน้าแชท interactive ทั้งหมด (พิมพ์คำถาม, เก็บ
+// conversation_id ต่อบทสนทนา, แสดง loading/error แบบทันที) ต้องใช้ useState +
+// fetch POST /api/chat จาก browser จึงรันบน client
 "use client";
 import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";

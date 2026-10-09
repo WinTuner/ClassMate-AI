@@ -1,3 +1,5 @@
+// Server Component (default — ไม่มี "use client") — เหตุผล: หน้า landing เป็น
+// เนื้อหา static ล้วน (ไม่มี state/fetch) render บน server ได้เลย เร็ว + SEO ดี
 import Link from "next/link";
 
 export default function Home() {

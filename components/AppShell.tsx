@@ -1,3 +1,5 @@
+// Client Component — เหตุผล: เมนูต้องรู้ path ปัจจุบัน (usePathname) + ชื่อผู้ใช้
+// จาก useAuth() เพื่อไฮไลต์เมนู active แบบทันที เป็น UI interactive จึงเป็น client
 "use client";
 
 import Link from "next/link";

@@ -9,13 +9,16 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^5.9.1",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.45.0",
     "next": "14.2.5",
     "openai": "^4.67.0",
     "pdf-parse": "^1.1.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.89.0",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

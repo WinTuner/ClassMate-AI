@@ -1,19 +1,35 @@
+// Client Component — เหตุผล: ฟอร์ม interactive (useState/useAuth/onSubmit/fetch
+// ฝั่ง browser + ต้องอ่าน Supabase session จาก browser) จึงรันบน client เท่านั้น
+// validate ด้วย react-hook-form + zod (schema ข้างล่าง) ก่อนยิง Supabase Auth
 "use client";
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { supabaseBrowser } from "@/lib/supabase-client";
 import { useAuth } from "@/components/AuthProvider";
 
+// zod schema = กติกาฝั่งเดียว (type + rule) — เปลี่ยนกติกาที่นี่ที่เดียว
+const loginSchema = z.object({
+  email: z.string().min(1, "กรุณากรอกอีเมล").email("รูปแบบอีเมลไม่ถูกต้อง"),
+  password: z.string().min(1, "กรุณากรอกรหัสผ่าน"),
+});
+type LoginValues = z.infer<typeof loginSchema>;
+
 export default function LoginPage() {
   const { email, name } = useAuth();
-  const [em, setEm] = useState("");
-  const [pw, setPw] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [isError, setIsError] = useState(false);
 
-  const login = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginValues>({ resolver: zodResolver(loginSchema) });
+
+  const login = async (values: LoginValues) => {
     setBusy(true);
     setMessage("");
     setIsError(false);
@@ -26,7 +42,7 @@ export default function LoginPage() {
     }
 
     try {
-      const { error } = await sb.auth.signInWithPassword({ email: em, password: pw });
+      const { error } = await sb.auth.signInWithPassword({ email: values.email, password: values.password });
       if (error) {
         setMessage(error.message);
         setIsError(true);
@@ -71,7 +87,7 @@ export default function LoginPage() {
             </button>
           </div>
         ) : (
-          <form className="form-stack" onSubmit={login}>
+          <form className="form-stack" onSubmit={handleSubmit(login)} noValidate>
             <label className="field-label">
               อีเมล
               <input
@@ -79,10 +95,10 @@ export default function LoginPage() {
                 type="email"
                 autoComplete="email"
                 placeholder="you@example.com"
-                required
-                value={em}
-                onChange={(event) => setEm(event.target.value)}
+                {...register("email")}
+                aria-invalid={!!errors.email}
               />
+              {errors.email && <span className="notice error" role="alert">{errors.email.message}</span>}
             </label>
             <label className="field-label">
               รหัสผ่าน
@@ -91,10 +107,10 @@ export default function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 placeholder="กรอกรหัสผ่าน"
-                required
-                value={pw}
-                onChange={(event) => setPw(event.target.value)}
+                {...register("password")}
+                aria-invalid={!!errors.password}
               />
+              {errors.password && <span className="notice error" role="alert">{errors.password.message}</span>}
             </label>
             <button className="button" type="submit" disabled={busy}>
               {busy ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}

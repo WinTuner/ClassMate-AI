@@ -1,5 +1,9 @@
-// Server Component — ดึงข้อมูลจริง (Supabase connectivity + counts) ฝั่ง server
+// Server Component — เหตุผล: เช็ค Supabase ด้วย SERVICE_ROLE_KEY ซึ่งอยู่บน server
+// เท่านั้น (ห้ามหลุดไป browser) + นับจำนวนแถวแบบไม่แยก user
 // ไม่มี "use client" ทั้งไฟล์ = Server Component แท้
+// Data fetching: SSR เจตนา (dynamic="force-dynamic" + revalidate=0)
+// — ทำไมไม่ SSG/ISR: หน้านี้คือ health-check ต้องสดทุกครั้งที่เปิด
+// ถ้า cache ไว้จะบอกว่า "พร้อม" ทั้งที่ DB ล่มไปแล้ว
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 

@@ -2,8 +2,12 @@ import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
-// Server Component — ดึงข้อมูลจริงจาก Supabase ฝั่ง server (per-user ผ่าน cookie session + RLS)
+// Server Component — เหตุผล: อ่าน Supabase ฝั่ง server ด้วย cookie session + RLS
+// (ปลอดภัยกว่า ไม่เผย service key; อ่าน per-user จึงห้าม cache ข้าม user)
 // ไม่มี "use client" ทั้งไฟล์ = Server Component แท้
+// Data fetching: SSR เจตนา (dynamic="force-dynamic" + revalidate=0)
+// — ทำไมไม่ SSG/ISR: รายการเอกสารเป็นของแต่ละ user + เปลี่ยนทันทีหลังอัปโหลด
+// ถ้า SSG/ISR จะเห็นข้อมูลของคนอื่นหรือข้อมูลเก่า จึงต้อง render สดทุก request
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
