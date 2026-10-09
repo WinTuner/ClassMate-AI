@@ -22,12 +22,11 @@ async function getStatus() {
   try {
     const { createClient } = await import("@supabase/supabase-js");
     const sb = createClient(url, serviceKey);
-    const [docs, convs, quizzes] = await Promise.all([
+    const [docs, quizzes] = await Promise.all([
       sb.from("documents").select("id", { count: "exact", head: true }),
-      sb.from("conversations").select("id", { count: "exact", head: true }),
       sb.from("quizzes").select("id", { count: "exact", head: true }),
     ]);
-    const err = docs.error || convs.error || quizzes.error;
+    const err = docs.error || quizzes.error;
     if (err) return { ok: false, checkedAt, message: err.message, counts: null };
     return {
       ok: true,
@@ -35,7 +34,6 @@ async function getStatus() {
       message: "เชื่อม Supabase สำเร็จ (server-side fetch)",
       counts: {
         documents: docs.count ?? 0,
-        conversations: convs.count ?? 0,
         quizzes: quizzes.count ?? 0,
       },
     };
@@ -58,7 +56,6 @@ export default async function StatusPage() {
       {s.counts && (
         <div className="stat-grid">
           <div className="stat-card"><span>เอกสาร</span><strong>{s.counts.documents}</strong></div>
-          <div className="stat-card"><span>บทสนทนา</span><strong>{s.counts.conversations}</strong></div>
           <div className="stat-card"><span>แบบทดสอบ</span><strong>{s.counts.quizzes}</strong></div>
         </div>
       )}

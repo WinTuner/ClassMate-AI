@@ -1,6 +1,6 @@
-// Client Component — เหตุผล: หน้าแชท interactive ทั้งหมด (พิมพ์คำถาม, เก็บ
-// conversation_id ต่อบทสนทนา, แสดง loading/error แบบทันที) ต้องใช้ useState +
-// fetch POST /api/chat จาก browser จึงรันบน client
+// Client Component — เหตุผล: หน้าแชท interactive ทั้งหมด (พิมพ์คำถาม,
+// แสดง loading/error แบบทันที) ต้องใช้ useState + fetch POST /api/chat
+// จาก browser จึงรันบน client (ไม่เก็บประวัติ ถาม-ตอบจบในครั้งเดียว)
 "use client";
 import { useState } from "react";
 import Link from "next/link";
@@ -11,7 +11,6 @@ type Citation = { file?: unknown; page?: unknown; score?: unknown };
 type ChatResult = {
   answer?: string;
   citations?: unknown[];
-  conversation_id?: string;
   [key: string]: unknown;
 };
 
@@ -33,7 +32,6 @@ export default function ChatPage() {
   const [result, setResult] = useState<ChatResult | null>(null);
   const [error, setError] = useState("");
   const [needsLogin, setNeedsLogin] = useState(false);
-  const [conversationId, setConversationId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const send = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -46,7 +44,7 @@ export default function ChatPage() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: q.trim(), conversation_id: conversationId ?? undefined }),
+        body: JSON.stringify({ question: q.trim() }),
       });
       const data: unknown = await response.json();
       if (!response.ok) {
@@ -61,7 +59,6 @@ export default function ChatPage() {
       }
       const answer = data as ChatResult;
       setResult(answer);
-      if (typeof answer.conversation_id === "string") setConversationId(answer.conversation_id);
       setQ("");
     } catch {
       setError("เชื่อมต่อระบบถามตอบไม่ได้ กรุณาลองอีกครั้ง");

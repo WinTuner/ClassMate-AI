@@ -27,23 +27,6 @@ create table chunks (
   created_at timestamptz default now()
 );
 
-create table conversations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
-  title text,
-  created_at timestamptz default now()
-);
-
-create table messages (
-  id uuid primary key default gen_random_uuid(),
-  conv_id uuid references conversations(id) on delete cascade not null,
-  user_id uuid references auth.users(id) on delete cascade not null,
-  role text not null check (role in ('user','assistant')),
-  content text not null,
-  citations jsonb default '[]',
-  created_at timestamptz default now()
-);
-
 create table quizzes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
@@ -56,14 +39,10 @@ create table quizzes (
 -- RLS: user sees only own rows
 alter table documents enable row level security;
 alter table chunks enable row level security;
-alter table conversations enable row level security;
-alter table messages enable row level security;
 alter table quizzes enable row level security;
 
 create policy "own docs" on documents for all using (auth.uid() = user_id);
 create policy "own chunks" on chunks for all using (auth.uid() = user_id);
-create policy "own convs" on conversations for all using (auth.uid() = user_id);
-create policy "own msgs" on messages for all using (auth.uid() = user_id);
 create policy "own quiz" on quizzes for all using (auth.uid() = user_id);
 
 -- Vector search (filter per user!)

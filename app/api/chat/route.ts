@@ -9,7 +9,9 @@ import { CHAT_SYSTEM_PROMPT, NOT_FOUND_TH } from "@/lib/prompts";
 const THRESHOLD = Number(process.env.SIMILARITY_THRESHOLD ?? 0.35);
 const TOP_K = Number(process.env.TOP_K ?? 5);
 
-// POST /api/chat { conversation_id?, question } — RAG + guardrail + save history
+// POST /api/chat { question } — RAG + guardrail
+// Privacy: ไม่บันทึกประวัติบทสนทนา (ไม่ insert conversations/messages)
+// ถาม-ตอบจบใน request เดียว ไม่มี conversation_id
 export async function POST(req: NextRequest) {
   const cookieStore = cookies();
   const sb = createServerClient(
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest) {
   if (!data.user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   const user = data.user;
 
-  const { conversation_id, question } = await req.json();
+  const { question } = await req.json();
   if (!question?.trim()) return NextResponse.json({ error: "empty question" }, { status: 400 });
 
   const admin = supabaseAdmin();
@@ -34,22 +36,9 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const good = (hits ?? []).filter((h: { similarity: number }) => h.similarity >= THRESHOLD);
-  let convId = conversation_id as string | undefined;
-  if (!convId) {
-    const { data: conv } = await admin
-      .from("conversations")
-      .insert({ user_id: user.id, title: question.slice(0, 60) })
-      .select("id")
-      .single();
-    convId = conv!.id;
-  }
 
   if (good.length === 0) {
-    await admin.from("messages").insert([
-      { conv_id: convId, user_id: user.id, role: "user", content: question },
-      { conv_id: convId, user_id: user.id, role: "assistant", content: NOT_FOUND_TH, citations: [] },
-    ]);
-    return NextResponse.json({ answer: NOT_FOUND_TH, citations: [], conversation_id: convId });
+    return NextResponse.json({ answer: NOT_FOUND_TH, citations: [] });
   }
 
   const context = good
@@ -62,9 +51,5 @@ export async function POST(req: NextRequest) {
     score: h.similarity,
   }));
 
-  await admin.from("messages").insert([
-    { conv_id: convId, user_id: user.id, role: "user", content: question },
-    { conv_id: convId, user_id: user.id, role: "assistant", content: answer, citations },
-  ]);
-  return NextResponse.json({ answer, citations, conversation_id: convId });
+  return NextResponse.json({ answer, citations });
 }
