@@ -26,6 +26,20 @@ export async function POST(req: NextRequest) {
   const file = form.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "missing file" }, { status: 400 });
 
+  // กันอัปโหลดไฟล์เดิมซ้ำ (เช็กก่อนเสียเวลาอ่าน/ฝัง embeddings)
+  const admin = supabaseAdmin();
+  const { data: dup } = await admin
+    .from("documents")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("filename", file.name)
+    .limit(1);
+  if (dup && dup.length > 0)
+    return NextResponse.json(
+      { error: `ไฟล์ "${file.name}" อยู่ในคลังแล้ว ไม่ต้องอัปโหลดซ้ำ` },
+      { status: 409 }
+    );
+
   const buf = Buffer.from(await file.arrayBuffer());
   const v = validatePdfBuffer(buf, file.type);
   if (!v.ok) return NextResponse.json({ error: v.reason }, { status: 400 });
@@ -44,7 +58,6 @@ export async function POST(req: NextRequest) {
       { status: 400 }
     );
 
-  const admin = supabaseAdmin();
   const { data: doc, error: docErr } = await admin
     .from("documents")
     .insert({ user_id: user.id, filename: file.name, pages: parsed.numpages, status: "ready" })
