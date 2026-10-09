@@ -16,6 +16,7 @@
 - `POST /api/quiz` `{topic, type, n}` → `{quiz_id, quiz}`
 - `GET /api/history` → 20 บทสนทนาล่าสุด + messages
 - `DELETE /api/history?id=` → ลบบทสนทนา
+- `DELETE /api/documents?id=` → ลบเอกสารของตัวเอง (chunks ลบตาม)
 
 ## Security
 - Key อยู่ server env เท่านั้น (`THAILLM_API_KEY`, `GEMINI_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`)
@@ -55,7 +56,7 @@ API (Route Handler): `POST /api/ingest`, `POST /api/chat`, `POST /api/summarize`
 - ทำไมไม่ SSG/ISR: `/documents` เป็นข้อมูล per-user (cache รวมจะเห็นของคนอื่น/ข้อมูลเก่าหลังอัปโหลด), `/status` คือ health-check (cache จะบอก "พร้อม" ทั้งที่ DB ล่ม) — เลยต้องสดเท่านั้น
 
 ### 4. Mutation ผ่าน Route Handler
-- `POST /api/chat` (insert conversations + messages), `POST /api/ingest` (insert documents + chunks), `POST /api/quiz` (insert quizzes), `DELETE /api/history?id=` (ลบ) — ฝั่ง client ยิงด้วย `fetch` จาก `app/chat`, `app/upload`, `app/quiz`
+- `POST /api/chat` (insert conversations + messages), `POST /api/ingest` (insert documents + chunks, กันชื่อไฟล์ซ้ำด้วย 409), `POST /api/quiz` (insert quizzes), `DELETE /api/history?id=` (ลบ), `DELETE /api/documents?id=` (ลบเอกสาร+chunks ของตัวเอง) — ฝั่ง client ยิงด้วย `fetch` จาก `app/chat`, `app/upload`, `app/quiz`, `app/documents` (ปุ่มลบมี confirm + `router.refresh()`)
 
 ### 5. Global state ฝั่ง client
 - `components/AuthProvider.tsx` = React Context (`createContext` + `useAuth()`) ห่อทั้งแอปใน `app/layout.tsx` แชร์ `email/name/loading` ให้ `AppShell` + ทุกหน้าโดยไม่ prop-drilling เก็บแค่ display info ไม่ถือ key

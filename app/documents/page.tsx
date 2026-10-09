@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { DeleteDocButton } from "@/components/DeleteDocButton";
 
 // Server Component — เหตุผล: อ่าน Supabase ฝั่ง server ด้วย cookie session + RLS
 // (ปลอดภัยกว่า ไม่เผย service key; อ่าน per-user จึงห้าม cache ข้าม user)
@@ -62,6 +63,7 @@ export default async function DocumentsPage() {
               <li className="data-row" key={d.id}>
                 <strong>{d.filename}</strong>
                 <span>{d.pages} หน้า · {d.status} · {new Date(d.created_at).toLocaleDateString("th-TH")}</span>
+                <DeleteDocButton id={d.id} filename={d.filename} />
               </li>
             ))}
           </ul>
