@@ -395,25 +395,6 @@ a {
   font-weight: 700;
 }
 
-.signup-prompt {
-  display: grid;
-  gap: 10px;
-  margin-top: 22px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-  text-align: center;
-}
-
-.signup-prompt p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 14px;
-}
-
-.signup-cta {
-  width: 100%;
-}
-
 .notice {
   margin-top: 18px;
   border-radius: 11px;
