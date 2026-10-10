@@ -4,8 +4,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listDocs } from "@/lib/local-docs";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function StatusPage() {
+  const { email, loading } = useAuth();
   const [count, setCount] = useState<number | null>(null);
   const [quota, setQuota] = useState<{ limit: number; used: number; remaining: number } | null>(null);
 
@@ -13,11 +15,32 @@ export default function StatusPage() {
     listDocs()
       .then((all) => setCount(all.length))
       .catch(() => setCount(0));
+  }, []);
+
+  useEffect(() => {
+    if (!email) {
+      setQuota(null);
+      return;
+    }
+
     fetch("/api/quota")
       .then((r) => (r.ok ? r.json() : null))
       .then((q) => q && setQuota(q))
       .catch(() => undefined);
-  }, []);
+  }, [email]);
+
+  if (!loading && !email) {
+    return (
+      <main className="page-container narrow">
+        <p className="eyebrow">ความเป็นส่วนตัว</p>
+        <h1 className="page-title">สถานะระบบ</h1>
+        <section className="panel">
+          <p className="notice" role="status">กรุณาเข้าสู่ระบบก่อนใช้งานหน้านี้</p>
+          <Link className="button" href="/login?next=%2Fstatus">เข้าสู่ระบบ</Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page-container narrow">
@@ -37,8 +60,8 @@ export default function StatusPage() {
           <div className="stat-card"><span>ไฟล์ออกนอกเครื่อง</span><strong>0</strong></div>
           <div className="stat-card"><span>ประวัติแชทที่บันทึก</span><strong>0</strong></div>
           <div className="stat-card">
-            <span>โควตา AI วันนี้{quota ? "" : " (login ก่อน)"}</span>
-            <strong>{quota ? `${quota.remaining}/${quota.limit}` : "–"}</strong>
+            <span>โควตา AI วันนี้</span>
+            <strong>{loading ? "กำลังตรวจสอบ..." : quota ? `${quota.remaining}/${quota.limit}` : "–"}</strong>
           </div>
         </div>
         <p style={{ marginTop: 24 }}>

@@ -12,6 +12,7 @@ const navigation = [
   { href: "/chat", label: "ถาม AI" },
   { href: "/quiz", label: "แบบทดสอบ" },
   { href: "/documents", label: "เอกสาร" },
+  { href: "/status", label: "สถานะระบบ" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
