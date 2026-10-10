@@ -390,6 +390,11 @@ a {
   line-height: 1.7;
 }
 
+.form-help a {
+  color: var(--brand);
+  font-weight: 700;
+}
+
 .notice {
   margin-top: 18px;
   border-radius: 11px;

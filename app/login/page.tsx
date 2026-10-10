@@ -48,7 +48,8 @@ export default function LoginPage() {
         setIsError(true);
         return;
       }
-      window.location.href = "/chat";
+      const next = new URLSearchParams(window.location.search).get("next");
+      window.location.href = next?.startsWith("/") && !next.startsWith("//") ? next : "/chat";
     } catch {
       setMessage("เข้าสู่ระบบไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองอีกครั้ง");
       setIsError(true);
